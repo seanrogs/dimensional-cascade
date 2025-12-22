@@ -49,11 +49,26 @@
   <div id="content">Loading…</div>
 
   <script>
-    const owner = "seanrogs";
-    const repo  = "dimensional-cascade";
+    const owner  = "seanrogs";
+    const repo   = "dimensional-cascade";
     const branch = "main";
 
     const allowedExtensions = [".pdf"];
+
+    function toTitleCase(str) {
+      return str
+        .replace(/[-_]/g, " ")
+        .replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    function formatFileName(name) {
+      return toTitleCase(name.replace(/\.pdf$/i, ""));
+    }
+
+    function formatFolderName(path) {
+      if (path === "Root") return "Root";
+      return toTitleCase(path.split("/").pop());
+    }
 
     async function fetchDirectory(path = "") {
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
@@ -87,7 +102,6 @@
         if (!groups[folder]) {
           groups[folder] = [];
         }
-
         groups[folder].push(file);
       }
 
@@ -109,10 +123,11 @@
 
       for (const folder of folders) {
         const heading = document.createElement("h2");
-        heading.textContent = folder === "Root" ? "Root" : folder;
+        heading.textContent = formatFolderName(folder);
         container.appendChild(heading);
 
         const list = document.createElement("ul");
+
         groups[folder]
           .sort((a, b) => a.name.localeCompare(b.name))
           .forEach(file => {
@@ -120,7 +135,7 @@
             const link = document.createElement("a");
 
             link.href = `https://${owner}.github.io/${repo}/${file.path}`;
-            link.textContent = file.name;
+            link.textContent = formatFileName(file.name);
 
             li.appendChild(link);
             list.appendChild(li);
