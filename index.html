@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Downloads</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      max-width: 720px;
+      margin: 3rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      margin-bottom: 1rem;
+    }
+
+    ul {
+      padding-left: 1.25rem;
+    }
+
+    li {
+      margin: 0.5rem 0;
+    }
+
+    a {
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .path {
+      color: #666;
+      font-size: 0.9em;
+      margin-left: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Downloads</h1>
+  <ul id="file-list">
+    <li>Loading…</li>
+  </ul>
+
+  <script>
+    const owner = "seanrogs";
+    const repo = "seanrogs.github.io";
+    const branch = "main";
+
+    // Extensions to include
+    const allowedExtensions = [
+      ".pdf"
+    ];
+
+    async function fetchDirectory(path = "") {
+      const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
+      const response = await fetch(url);
+      if (!response.ok) return [];
+
+      const items = await response.json();
+      let files = [];
+
+      for (const item of items) {
+        if (item.type === "dir") {
+          files = files.concat(await fetchDirectory(item.path));
+        } else if (item.type === "file") {
+          const name = item.name.toLowerCase();
+          if (allowedExtensions.some(ext => name.endsWith(ext))) {
+            files.push(item);
+          }
+        }
+      }
+
+      return files;
+    }
+
+    async function buildList() {
+      const list = document.getElementById("file-list");
+      list.innerHTML = "";
+
+      const files = await fetchDirectory();
+
+      if (!files.length) {
+        list.innerHTML = "<li>No documents found.</li>";
+        return;
+      }
+
+      files.sort((a, b) => a.path.localeCompare(b.path));
+
+      for (const file of files) {
+        const li = document.createElement("li");
+        const link = document.createElement("a");
+
+        link.href = `https://${owner}.github.io/${repo}/${file.path}`;
+        link.textContent = file.name;
+
+        const path = document.createElement("span");
+        path.className = "path";
+        path.textContent = `(${file.path})`;
+
+        li.appendChild(link);
+        li.appendChild(path);
+        list.appendChild(li);
+      }
+    }
+
+    buildList();
+  </script>
+</body>
+</html>
