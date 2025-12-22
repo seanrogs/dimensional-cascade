@@ -8,23 +8,31 @@
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      max-width: 720px;
+      max-width: 760px;
       margin: 3rem auto;
       padding: 0 1rem;
       line-height: 1.5;
     }
 
     h1 {
-      font-size: 1.75rem;
-      margin-bottom: 1rem;
+      font-size: 1.8rem;
+      margin-bottom: 2rem;
+    }
+
+    h2 {
+      font-size: 1.2rem;
+      margin-top: 2rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.25rem;
     }
 
     ul {
       padding-left: 1.25rem;
+      margin-top: 0.5rem;
     }
 
     li {
-      margin: 0.5rem 0;
+      margin: 0.4rem 0;
     }
 
     a {
@@ -34,29 +42,18 @@
     a:hover {
       text-decoration: underline;
     }
-
-    .path {
-      color: #666;
-      font-size: 0.9em;
-      margin-left: 0.25rem;
-    }
   </style>
 </head>
 <body>
   <h1>Downloads</h1>
-  <ul id="file-list">
-    <li>Loading…</li>
-  </ul>
+  <div id="content">Loading…</div>
 
   <script>
     const owner = "seanrogs";
     const repo = "seanrogs.github.io";
     const branch = "main";
 
-    // Extensions to include
-    const allowedExtensions = [
-      ".pdf"
-    ];
+    const allowedExtensions = [".pdf"];
 
     async function fetchDirectory(path = "") {
       const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${branch}`;
@@ -80,37 +77,60 @@
       return files;
     }
 
-    async function buildList() {
-      const list = document.getElementById("file-list");
-      list.innerHTML = "";
+    function groupByFolder(files) {
+      const groups = {};
+
+      for (const file of files) {
+        const parts = file.path.split("/");
+        const folder = parts.length > 1 ? parts.slice(0, -1).join("/") : "Root";
+
+        if (!groups[folder]) {
+          groups[folder] = [];
+        }
+
+        groups[folder].push(file);
+      }
+
+      return groups;
+    }
+
+    async function buildPage() {
+      const container = document.getElementById("content");
+      container.innerHTML = "";
 
       const files = await fetchDirectory();
-
       if (!files.length) {
-        list.innerHTML = "<li>No documents found.</li>";
+        container.textContent = "No documents found.";
         return;
       }
 
-      files.sort((a, b) => a.path.localeCompare(b.path));
+      const groups = groupByFolder(files);
+      const folders = Object.keys(groups).sort();
 
-      for (const file of files) {
-        const li = document.createElement("li");
-        const link = document.createElement("a");
+      for (const folder of folders) {
+        const heading = document.createElement("h2");
+        heading.textContent = folder === "Root" ? "Root" : folder;
+        container.appendChild(heading);
 
-        link.href = `https://${owner}.github.io/${repo}/${file.path}`;
-        link.textContent = file.name;
+        const list = document.createElement("ul");
+        groups[folder]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach(file => {
+            const li = document.createElement("li");
+            const link = document.createElement("a");
 
-        const path = document.createElement("span");
-        path.className = "path";
-        path.textContent = `(${file.path})`;
+            link.href = `https://${owner}.github.io/${repo}/${file.path}`;
+            link.textContent = file.name;
 
-        li.appendChild(link);
-        li.appendChild(path);
-        list.appendChild(li);
+            li.appendChild(link);
+            list.appendChild(li);
+          });
+
+        container.appendChild(list);
       }
     }
 
-    buildList();
+    buildPage();
   </script>
 </body>
 </html>
